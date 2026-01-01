@@ -8,6 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// DB & context initialisation
 var rdb *redis.Client
 var ctx context.Context
 
@@ -30,8 +31,7 @@ func main() {
 	// endpoints
 	router.GET("/", getHome)
 	router.GET("/:shorturl", getURL)
-	router.GET("/newurl/", newURL)
-	router.POST("/make:fullurl", setURL)
+	router.GET("/newurl", newURL)
 
 	// start server
 	router.Run()
@@ -52,38 +52,39 @@ func getURL(c *gin.Context) {
 	// retrieve full url from DB
 	fullurl, err := rdb.Get(ctx, shorturl).Result()
 	if err != nil {
-		panic(err)
+		// return full url
+		c.JSON(http.StatusOK, gin.H{
+			"message": "error",
+		})
+	} else {
+		// redirect to full URL
+		c.Redirect(http.StatusFound, fullurl)
 	}
-
-	// return full url
-	c.JSON(http.StatusOK, gin.H{
-		"fullurl": fullurl,
-	})
 }
 
-// testing functionality in browser for short url and
-// DB connection
+// make shorturl for provided fullurl
 func newURL(c *gin.Context) {
-	// get new short link
-	shorturl := makeShortLink()
+	// get fullurl provided
+	fullurl := c.Query("url")
 
-	// test DB functionality and add google.com as placeholder for now
-	err := rdb.Set(ctx, shorturl, "https://www.google.com", 0).Err()
-	if err != nil {
-		panic(err)
+	if fullurl != "" {
+		// get new short link
+		shorturl := makeShortLink()
+
+		// test DB functionality and add google.com as placeholder for now
+		err := rdb.Set(ctx, shorturl, fullurl, 0).Err()
+		if err != nil {
+			panic(err)
+		}
+
+		// return new shortlink
+		c.JSON(http.StatusOK, gin.H{
+			"shorturl": shorturl,
+		})
+	} else {
+		// return error message
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "error",
+		})
 	}
-
-	// return new shortlink
-	c.JSON(http.StatusOK, gin.H{
-		"shorturl": shorturl,
-	})
-}
-
-// make short URL from full URL
-func setURL(c *gin.Context) {
-	shorturl := makeShortLink()
-
-	c.JSON(http.StatusOK, gin.H{
-		"shorturl": shorturl,
-	})
 }
