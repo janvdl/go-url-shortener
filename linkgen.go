@@ -1,4 +1,4 @@
-package gourlshortener
+package main
 
 import (
 	"math/rand/v2"
