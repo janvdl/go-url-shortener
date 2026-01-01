@@ -26,7 +26,7 @@ func init() {
 }
 
 func makeShortLink() string {
-	return strings.Join([]string{getAdjective(), getAdjective(), getAnimal()}, "-")
+	return strings.Join([]string{getAdjective(), getAnimal()}, "-")
 }
 
 // return random adjective

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -71,8 +72,23 @@ func newURL(c *gin.Context) {
 		// get new short link
 		shorturl := makeShortLink()
 
+		// if the key already exists, make a new one
+		exists, err := rdb.Exists(ctx, shorturl).Result()
+		if err != nil {
+			panic(err)
+		}
+		for exists > 0 {
+			shorturl = makeShortLink()
+		}
+
 		// test DB functionality and add google.com as placeholder for now
-		err := rdb.Set(ctx, shorturl, fullurl, 0).Err()
+		err = rdb.Set(ctx, shorturl, fullurl, 0).Err()
+		if err != nil {
+			panic(err)
+		}
+
+		// expire the link within 1 week
+		err = rdb.Expire(ctx, shorturl, 7*24*time.Hour).Err()
 		if err != nil {
 			panic(err)
 		}
